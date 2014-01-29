@@ -8,11 +8,13 @@ This script avoids the need to illegally redistribute Spotify binaries without a
 Currently only Fedora 20 is supported.
 
 
+
 If you run only the script you need:
 
 desktop-file-utils ffmpeg-compat alsa-lib glibc libXScrnSaver qtwebkit
 
 nspr nss nss-util systemd-libs openssl-libs openssl0.9.8-spotify libgcrypt xterm wget binutils
+
 
 
 INSTALLATION
