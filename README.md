@@ -10,11 +10,11 @@ Currently only Fedora 20 is supported.
 
 -----------------------------------------------------
 
-If you run only the script you need:
+**If you run only the script you need:**
 
 desktop-file-utils ffmpeg-compat alsa-lib glibc libXScrnSaver qtwebkit
 
-nspr nss nss-util systemd-libs openssl-libs openssl0.9.8-spotify (http://sourceforge.net/projects/postinstaller/files/fedora/releases/20/ ) libgcrypt xterm wget binutils
+nspr nss nss-util systemd-libs openssl-libs openssl0.9.8-spotify libgcrypt xterm wget binutils
 
 
 ----------------------------------------------------
@@ -27,7 +27,7 @@ su -c 'yum -y install http://sourceforge.net/projects/postinstaller/files/fedora
 -----------------------------------------------------
 
 
-SOURCE RPM
+**Source rpm**
 
 http://sourceforge.net/projects/postinstaller/files/fedora/releases/20/SRPM/spotify-client-0.9.4.183.g644e24e.428-2.fc20.src.rpm
 
