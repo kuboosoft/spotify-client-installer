@@ -17,6 +17,7 @@ fi
 
 find /home/$CURRENUSER/.local/share/spotify/ -name spotify-client -ctime +$check -exec rm -rf {} \;
 find /home/$CURRENUSER/.local/share/spotify/ -name libs -ctime +$check -exec rm -rf {} \;
+find /home/$CURRENUSER/.local/share/applications/ -name spotify-client.desktop -ctime +$check -exec rm -rf {} \;
 
 wait ${!}
 
@@ -149,6 +150,27 @@ if [ ! -f /home/$CURRENUSER/.local/share/spotify/libs/libcef.so ]; then
 fi
 
 chmod a+x /home/$CURRENUSER/.local/share/spotify/spotify-client/spotify
+
+# menu-entry
+
+if [ ! -f /usr/share/applications/spotify-client.desktop ] && [ ! -f /home/$CURRENUSER/.local/share/applications/spotify-client.desktop ]; then
+
+install -dm 755 /home/$CURRENUSER/.local/share/applications
+cat > /home/$CURRENUSER/.local/share/applications/spotify-client.desktop << EOF
+[Desktop Entry]
+Name=spotify
+GenericName=spotify
+Comment=A proprietary peer-to-peer music streaming service
+Icon=$HOME/.local/share/spotify/spotify-client/Icons/spotify-linux-128.png
+Type=Application
+Categories=AudioVideo;
+Exec=spotify
+StartupNotify=false
+Terminal=false
+EOF
+
+fi
+chmod a+x /home/$CURRENUSER/.local/share/applications/spotify-client.desktop
 
 wait ${!}
 
