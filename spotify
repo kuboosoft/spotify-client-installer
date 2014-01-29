@@ -18,6 +18,7 @@ fi
 find /home/$CURRENUSER/.local/share/spotify/ -name spotify-client -ctime +$check -exec rm -rf {} \;
 find /home/$CURRENUSER/.local/share/spotify/ -name libs -ctime +$check -exec rm -rf {} \;
 find /home/$CURRENUSER/.local/share/applications/ -name spotify-client.desktop -ctime +$check -exec rm -rf {} \;
+find /home/$CURRENUSER/.local/share/spotify/ -name spotify -ctime +$check -exec rm -rf {} \;
 
 wait ${!}
 
@@ -149,7 +150,16 @@ if [ ! -f /home/$CURRENUSER/.local/share/spotify/libs/libcef.so ]; then
 
 fi
 
+# Execute permissions for the bin
+
 chmod a+x /home/$CURRENUSER/.local/share/spotify/spotify-client/spotify
+
+# Launcher
+if [ ! -f $HOME/.local/share/spotify/spotify ] && [ ! -f /usr/bin/spotify ]; then
+wget -c -P $HOME/.local/share/spotify/ https://raw.github.com/kuboosoft/spotify-client-installer/master/spotify
+fi
+
+chmod a+x $HOME/.local/share/spotify/spotify
 
 # menu-entry
 
@@ -164,7 +174,7 @@ Comment=A proprietary peer-to-peer music streaming service
 Icon=$HOME/.local/share/spotify/spotify-client/Icons/spotify-linux-128.png
 Type=Application
 Categories=AudioVideo;
-Exec=spotify
+Exec=$HOME/.local/share/spotify/spotify
 StartupNotify=false
 Terminal=false
 EOF
