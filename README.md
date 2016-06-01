@@ -17,10 +17,6 @@ desktop-file-utils ffmpeg-compat alsa-lib glibc libXScrnSaver qtwebkit
 nspr nss nss-util systemd-libs openssl-libs openssl0.9.8-spotify libgcrypt xterm wget binutils
 
 
-----------------------------------------------------
-**How to Install Spotify-client-fedora?**
-
-su -c 'yum -y install http://sourceforge.net/projects/postinstaller/files/fedora/releases/20/x86_64/updates/spotify-client-0.9.4.183.g644e24e.428-2.fc20.noarch.rpm/'
 
 
 
