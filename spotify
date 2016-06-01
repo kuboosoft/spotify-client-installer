@@ -4,8 +4,24 @@
 # Passes all parametrs to spotify
 # This only a script installer it download the oficial .deb from http://repository.spotify.com/pool/non-free/s/spotify/ and install in you personal directory. This script is Open Source own a GPLv3 http://www.gnu.org/licenses/gpl-3.0.html.
 
-CURRENUSER=$(loginctl show-session $XDG_SESSION_ID | cut -d= -f2 | tail -n 1); echo "CURRENUSER = $CURRENUSER"
-check=62
+
+# Run only one instance, thanks Todd T 
+
+lockdir=/tmp
+if [ -w /var/lock ]; then lockdir=/var/lock ; fi
+self=`basename $0`
+pidf="$lockdir/LCK..$self.uid$EUID.pid"
+exec 221>${pidf}
+flock --exclusive --nonblock 221 ||
+{
+        echo "Already running"
+        exit 1
+}
+echo $$ | awk '{printf "%10u\n",$0}' >&221
+####
+
+
+check=20
 DAY=2
 
 # Deleting old source
@@ -13,184 +29,139 @@ if [ -f /tmp/spotify-client*.deb ]; then
 find /tmp/ -name spotify-client*.deb -ctime +$DAY -exec rm -rf {} \;
 fi
 
-# Deleting the program each 62 days, It will updating Spotify automatic.
+# Deleting the program each 20 days, It will updating Spotify automatic.
 
-find /home/$CURRENUSER/.local/share/spotify/ -name spotify-client -ctime +$check -exec rm -rf {} \;
-find /home/$CURRENUSER/.local/share/spotify/ -name libs -ctime +$check -exec rm -rf {} \;
-find /home/$CURRENUSER/.local/share/applications/ -name spotify-client.desktop -ctime +$check -exec rm -rf {} \;
-find /home/$CURRENUSER/.local/share/spotify/ -name spotify -ctime +$check -exec rm -rf {} \;
+if [ -d $HOME/.local/share/spotify/ ]; then
+find $HOME/.local/share/spotify/ -name spotify-client -ctime +$check -exec rm -rf {} \;
+find $HOME/.local/share/spotify/ -name libs -ctime +$check -exec rm -rf {} \;
+find $HOME/.local/share/applications/ -name spotify-client.desktop -ctime +$check -exec rm -rf {} \;
+find $HOME/.local/share/spotify/ -name spotify -ctime +$check -exec rm -rf {} \;
+find $HOME/.local/share/spotify/libs/* -ctime +$check -exec rm -rf {} \;
+find $HOME/.local/share/spotify/* -ctime +$check -exec rm -rf {} \;
+fi
 
 wait ${!}
 
+if [ ! -d ~/.config/spotify ]; then
+mkdir ~/.config/spotify/
+fi
+
 # Run the program if exis, else will install Spotify
 
-if [ -f /home/$CURRENUSER/.local/share/spotify/spotify-client/spotify ]; then
-
-LD_LIBRARY_PATH=/home/$CURRENUSER/.local/share/spotify/libs/ /home/$CURRENUSER/.local/share/spotify/spotify-client/spotify "$@"
+if [ -f $HOME/.local/share/spotify/spotify-client/spotify ]; then
+cd $HOME/.local/share/spotify/spotify-client/
+LD_LIBRARY_PATH=$HOME/.local/share/spotify/libs/:/usr/lib64:/usr/lib:/usr/share/spotify/libs/:$HOME/.local/share/spotify/spotify-client/ $HOME/.local/share/spotify/spotify-client/spotify "$@"
 
 
 else
 
 
 # Downloading the current source
+install -dm 775 /tmp/source
 
 cd /tmp/
 
 if [ `getconf LONG_BIT` = "64" ]; then
-xterm -e 'wget -c -r -l1 -H -t1 -nd -N -np -A spotify-client*amd64.deb -erobots=off http://repository.spotify.com/pool/non-free/s/spotify/'
+#xterm -e 'wget -c -r -l1 -H -t1 -nd -N -np -A spotify-client*amd64.deb -erobots=off http://repository.spotify.com/pool/non-free/s/spotify/'
+xterm -e 'wget -c -r -l1 -H -t1 -nd -N -np -A spotify-client*amd64.deb -erobots=off http://repository.spotify.com/pool/non-free/s/spotify-client/'
 else
-xterm -e 'wget -c -r -l1 -H -t1 -nd -N -np -A spotify-client*i386.deb -erobots=off http://repository.spotify.com/pool/non-free/s/spotify/'
+xterm -e 'wget -c -r -l1 -H -t1 -nd -N -np -A spotify-client*i386.deb -erobots=off http://repository.spotify.com/pool/non-free/s/spotify-client/'
+#wget -c https://dl.dropboxusercontent.com/u/8593574/Spotify/spotify-client_0.9.4.183.g644e24e.428-1_i386.deb
 fi
 
 wait ${!}
 
-cd /tmp/
+package=$(ls | grep spotify-client | sort | sed '/^\s*$/d' | tail -1)
 
-if [ `getconf LONG_BIT` = "64" ]; then
-ar x spotify-client*amd64.deb 
-  tar xvzf data.tar.gz
+
+ar x $package 
+
+wait ${!}
+
+if [ -f /tmp/data.tar.xz ]; then
+tar xJf data.tar.xz -C /tmp/source
+elif [ -f /tmp/data.tar.gz ]; then 
+tar xmzvf data.tar.gz -C /tmp/source
 else
-ar x spotify-client*i386.deb 
-  tar xvzf data.tar.gz
+echo 'some is wrong, check the extracted deb (/tmp/), "data.tar.*"'
 fi
+
 
 wait ${!}
 
 # install
 
-install -dm 775 /home/$CURRENUSER/.local/share/spotify/libs/
-cp -rf /tmp/opt/spotify /home/$CURRENUSER/.local/share/
+install -dm 775 $HOME/.local/share/spotify/libs/
+install -dm 775 $HOME/.local/share/spotify/spotify-client
+cp -rf source/usr/share/spotify/* $HOME/.local/share/spotify/spotify-client
+
 
 
 wait ${!}
-
-#licence
-
-install -dm 755 /home/$CURRENUSER/.local/share/licenses/spotify-client/
-install -m 644 /tmp/usr/share/doc/spotify-client/copyright /home/$CURRENUSER/.local/share/licenses/spotify-client/
-
 
 #LIBS
 
 if [ `getconf LONG_BIT` = "64" ]; then
+libdir=lib64
+else
+libdir=lib
+fi
 
   # libplc4.so
-  ln -s /usr/lib64/libplc4.so /home/$CURRENUSER/.local/share/spotify/libs/libplc4.so.0d
+  ln -sf /usr/$libdir/libplc4.so $HOME/.local/share/spotify/libs/libplc4.so.0d
 
   # libnspr4.so
-  ln -s /usr/lib64/libnspr4.so /home/$CURRENUSER/.local/share/spotify/libs/libnspr4.so.0d
+  ln -sf /usr/$libdir/libnspr4.so $HOME/.local/share/spotify/libs/libnspr4.so.0d
 
   # libnss3.so
-  ln -s /usr/lib64/libnss3.so /home/$CURRENUSER/.local/share/spotify/libs/libnss3.so.1d
+  ln -sf /usr/$libdir/libnss3.so $HOME/.local/share/spotify/libs/libnss3.so.1d
 
   # libnssutil3.so
-  ln -s /usr/lib64/libnssutil3.so /home/$CURRENUSER/.local/share/spotify/libs/libnssutil3.so.1d
+  ln -sf /usr/$libdir/libnssutil3.so $HOME/.local/share/spotify/libs/libnssutil3.so.1d
 
   # libsmime3.so
-  ln -s /usr/lib64/libsmime3.so /home/$CURRENUSER/.local/share/spotify/libs/libsmime3.so.1d
+  ln -sf /usr/$libdir/libsmime3.so $HOME/.local/share/spotify/libs/libsmime3.so.1d
 
   # libudev.so
-  ln -s /usr/lib64/libudev.so.1.4.0 /home/$CURRENUSER/.local/share/spotify/libs/libudev.so.0
+  ln -sf /usr/$libdir/libudev.so.0 $HOME/.local/share/spotify/libs/libudev.so.0
 
   # openssl 
-  ln -s /usr/share/spotify/libs/libssl.so.0.9.8 /home/$CURRENUSER/.local/share/spotify/libs/
-  ln -s /usr/share/spotify/libs/libcrypto.so.0.9.8 /home/$CURRENUSER/.local/share/spotify/libs/
+  ln -sf /usr/$libdir/libssl.so.1.0.0 $HOME/.local/share/spotify/libs/libssl.so.1.0.0
+  ln -sf /usr/$libdir/libcrypto.so.1.0.0 $HOME/.local/share/spotify/libs/libcrypto.so.1.0.0
+
 
   # libssl3.so
-  ln -s /usr/lib64/libssl3.so /home/$CURRENUSER/.local/share/spotify/libs/libssl3.so.1d
+  ln -sf /usr/$libdir/libssl3.so $HOME/.local/share/spotify/libs/libssl3.so.1d
 
   # libplds4.so
-  ln -s /usr/lib64/libplds4.so /home/$CURRENUSER/.local/share/spotify/libs/libplds4.so.0d
+  ln -sf /usr/$libdir/libplds4.so $HOME/.local/share/spotify/libs/libplds4.so.0d
 
+  # libgcrypt
+  ln -sf /usr/$libdir/libgcrypt.so.11.8.3 $HOME/.local/share/spotify/libs/libgcrypt.so.11
 
-  # libcef.so
-if [ ! -f /home/$CURRENUSER/.local/share/spotify/libs/libcef.so ]; then
-  ln -s /home/$CURRENUSER/.local/share/spotify/spotify-client/Data/libcef.so /home/$CURRENUSER/.local/share/spotify/libs/
- fi
+  # libgdk
+  ln -sf /usr/$libdir/libgdk-x11-2.0.so.0 $HOME/.local/share/spotify/libs/libgdk-x11-2.0.so.0
 
-else
+  #libgtk
+  ln -sf /usr/$libdir/libgtk-x11-2.0.so.0 $HOME/.local/share/spotify/libs/libgtk-x11-2.0.so.0
 
-# 32 BITS
-
- # libplc4.so
-  ln -s /usr/lib/libplc4.so /home/$CURRENUSER/.local/share/spotify/libs/libplc4.so.0d
-
-  # libnspr4.so
-  ln -s /usr/lib/libnspr4.so /home/$CURRENUSER/.local/share/spotify/libs/libnspr4.so.0d
-
-  # libnss3.so
-  ln -s /usr/lib/libnss3.so /home/$CURRENUSER/.local/share/spotify/libs/libnss3.so.1d
-
-  # libnssutil3.so
-  ln -s /usr/lib/libnssutil3.so /home/$CURRENUSER/.local/share/spotify/libs/libnssutil3.so.1d
-
-  # libsmime3.so
-  ln -s /usr/lib/libsmime3.so /home/$CURRENUSER/.local/share/spotify/libs/libsmime3.so.1d
-
-  # libudev.so
-  ln -s /usr/lib/libudev.so.1.4.0 /home/$CURRENUSER/.local/share/spotify/libs/libudev.so.0
-
-  # openssl 
-  ln -s /usr/share/spotify/libs/libssl.so.0.9.8 /home/$CURRENUSER/.local/share/spotify/libs/
-  ln -s /usr/share/spotify/libs/libcrypto.so.0.9.8 /home/$CURRENUSER/.local/share/spotify/libs/
-
-  # libssl3.so
-  ln -s /usr/lib/libssl3.so /home/$CURRENUSER/.local/share/spotify/libs/libssl3.so.1d
-
-  # libplds4.so
-  ln -s /usr/lib/libplds4.so /home/$CURRENUSER/.local/share/spotify/libs/libplds4.so.0d
-
+  #ffmpegsumo  
+  ln -sf $HOME/.local/share/spotify/spotify-client/libcef.so $HOME/.local/share/spotify/libs/libffmpegsumo.so
 
   # libcef.so
-if [ ! -f /home/$CURRENUSER/.local/share/spotify/libs/libcef.so ]; then
-  ln -s /home/$CURRENUSER/.local/share/spotify/spotify-client/Data/libcef.so /home/$CURRENUSER/.local/share/spotify/libs/
- fi
+  ln -sf $HOME/.local/share/spotify/spotify-client/libcef.so $HOME/.local/share/spotify/libs/libcef.so
 
-
-
-fi
-
-# Execute permissions for the bin
-
-chmod a+x /home/$CURRENUSER/.local/share/spotify/spotify-client/spotify
-
-# Launcher
-if [ ! -f $HOME/.local/share/spotify/spotify ] && [ ! -f /usr/bin/spotify ]; then
-wget -c -P $HOME/.local/share/spotify/ https://raw.github.com/kuboosoft/spotify-client-installer/master/spotify
-fi
-
-chmod a+x $HOME/.local/share/spotify/spotify
-
-# menu-entry
-
-if [ ! -f /usr/share/applications/spotify-client.desktop ] && [ ! -f /home/$CURRENUSER/.local/share/applications/spotify-client.desktop ]; then
-
-install -dm 755 /home/$CURRENUSER/.local/share/applications
-cat > /home/$CURRENUSER/.local/share/applications/spotify-client.desktop << EOF
-[Desktop Entry]
-Name=spotify
-GenericName=spotify
-Comment=A proprietary peer-to-peer music streaming service
-Icon=$HOME/.local/share/spotify/spotify-client/Icons/spotify-linux-128.png
-Type=Application
-Categories=AudioVideo;
-Exec=$HOME/.local/share/spotify/spotify
-StartupNotify=false
-Terminal=false
-EOF
-
-fi
-chmod a+x /home/$CURRENUSER/.local/share/applications/spotify-client.desktop
 
 wait ${!}
 
-LD_LIBRARY_PATH=/home/$CURRENUSER/.local/share/spotify/libs/ /home/$CURRENUSER/.local/share/spotify/spotify-client/spotify "$@"
+cd $HOME/.local/share/spotify/spotify-client/
+LD_LIBRARY_PATH=$HOME/.local/share/spotify/libs/:/usr/lib64:/usr/lib:/usr/share/spotify/libs/:$HOME/.local/share/spotify/spotify-client/ $HOME/.local/share/spotify/spotify-client/spotify "$@"
 
 rm -rf /tmp/opt
+rm -rf /tmp/source
 rm -rf /tmp/usr/
-rm -f /tmp/data.tar.gz
-rm -f /tmp/control.tar.gz
+rm -f /tmp/data.tar.*
+rm -f /tmp/control.tar.*
 rm -f /tmp/debian-binary
-
 
 fi
