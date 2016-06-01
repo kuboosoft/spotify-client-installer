@@ -5,7 +5,7 @@ A Open Source Spotify installer for Fedora
 
 This script avoids the need to illegally redistribute Spotify binaries without add the .deb to Source:,  into ".spec"/rpm/src.rpm; installing it along with some hacks to provide the necessary libraries where Spotify expects them to be.
 
-Currently only Fedora 20 is supported.
+Currently only Fedora 22-24 is supported.
 
 
 -----------------------------------------------------
@@ -23,11 +23,4 @@ nspr nss nss-util systemd-libs openssl-libs openssl0.9.8-spotify libgcrypt xterm
 su -c 'yum -y install http://sourceforge.net/projects/postinstaller/files/fedora/releases/20/x86_64/updates/spotify-client-0.9.4.183.g644e24e.428-2.fc20.noarch.rpm/'
 
 
-
------------------------------------------------------
-
-
-**Source rpm**
-
-http://sourceforge.net/projects/postinstaller/files/fedora/releases/20/SRPM/spotify-client-0.9.4.183.g644e24e.428-2.fc20.src.rpm
 
